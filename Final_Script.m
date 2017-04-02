@@ -36,7 +36,7 @@ wavg_sentiment(1)=s;
 
 % Initizalize upvotes data
 wavg_upvotes(1)=up_votes(1);
-s_upvotes=up_votes(1); %sum of upvotes
+s_upvotes=max(up_votes(1),20); %sum of upvotes
 
 % Calculuates windowed average for sentiment
 for i=2:size(time,1)
@@ -55,16 +55,16 @@ for i=2:size(time,1)
 end
 
 %Plots 
-figure(1)
-clf
-plot(1970+time/3600/24/365,wavg_sentiment)
-hold on
-plot(1970+p_time/1000/3600/24/365,price-1,'k')
-title('Sentiment and Stock Price over time')
-xlabel('time(year)')
-ylabel('unitless')
-legend('Sentiment','Stock Price')
-hold off
+% figure(1)
+% clf
+% plot(1970+time/3600/24/365,wavg_sentiment)
+% hold on
+% plot(1970+p_time/1000/3600/24/365,price-1,'k')
+% title('Sentiment and Stock Price over time')
+% xlabel('time(year)')
+% ylabel('unitless')
+% legend('Sentiment','Stock Price')
+% hold off
 
 % Initializes interpolated data for time
 interp_time=max(time(1),p_time(1)/1000):3600:min(time(end),p_time(end)/1000);
@@ -96,11 +96,11 @@ figure(2)
 clf
 plot(1970+interp_time/3600/24/365,interp_sentiment,'b')
 hold on
-plot(1970+interp_time/3600/24/365,interp_price,'k')
-title('Sentiment and Stock Price over time (Interpolated)')
-xlabel('time(year)')
-ylabel('unitless')
-legend('Sentiment (Interpolated)','Stock Price (Interpolated)')
+plot(1970+interp_time/3600/24/365,interp_price-1,'k')
+title('Sentiment and Stock Price over time')
+xlabel('Time(year)')
+% ylabel('unitless')
+legend('Sentiment','Stock Price(percent gain)')
 hold off
 
 % Trading Algorithm
@@ -120,13 +120,19 @@ mean_sentiment=0; n_mean=0;
 % according to deviations from the mean sentiment
 m_sent=zeros(size(interp_time));
 sent_speed=zeros(size(interp_time));
+
+i_share2=investment_share;
+l_share2=liquid_share;
 for i=1:size(interp_time,2)-1
     price_speed=(interp_price(i)-interp_price(max(1,i-10)));
     sentiment_speed=interp_sentiment(i)-mean_sentiment;
     sent_speed(i)=interp_sentiment(i)-mean_sentiment;
-    trade_quantity=sent_speed(i);%50*price_speed+sent_speed(i)/10;
+    trade_quantity=sent_speed(i)/4;%50*price_speed+sent_speed(i)/10;
     investment_share(i+1)=investment_share(i)+trade_quantity;
     liquid_share(i+1)=liquid_share(i)-trade_quantity*interp_price(i);
+    trade_quantity2=price_speed*500;
+    i_share2(i+1)=i_share2(i)+trade_quantity2;
+    l_share2(i+1)=l_share2(i)-trade_quantity2*interp_price(i);
     mean_sentiment=(mean_sentiment*n_mean+interp_sentiment(i))/(n_mean+1);
     n_mean=n_mean+1;
     m_sent(i)=mean_sentiment;
@@ -142,9 +148,10 @@ hold on
 plot(1970+interp_time/3600/24/365,200*interp_price/interp_price(1),'k')
 plot(1970+interp_time/3600/24/365,200*ones(size(interp_price)),'k')
 plot(1970+interp_time/3600/24/365,investment_share.*interp_price+liquid_share,'g')
-title('Return on Investment ($100)')
+plot(1970+interp_time/3600/24/365,i_share2.*interp_price+l_share2,'b')
+title('Return on Investment ($200)')
 xlabel('Time(year)')
 ylabel('Money($USD)')
-legend('Stock Price', 'Baseline', 'Our Strategy','Location','best')
+legend('Stock Price', 'Baseline', 'Our Strategy','Price Momentum','Location','best')
 hold off
 
